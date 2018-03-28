@@ -73,7 +73,7 @@ if out_fig_prefix is not None:
         out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))
         fig_data = cigar_spans.loc[cigar_spans["ref"] == ref].as_matrix(columns = ["span"])
         print("Writing histogram of cigar spans for %s reads to file:\n%s" % (fig_data.shape[0], out_fig))
-        n, bins, patches = plt.hist(fig_data, bins = 500, histtype = "stepfilled", cumulative = False)
+        n, bins, patches = plt.hist(fig_data, bins = 500, histtype = "stepfilled", cumulative = False, log = True)
         plt_title = ref
         if hist_label is not None:
             plt_title = "%s -> %s" % (hist_label, plt_title)
