@@ -23,6 +23,7 @@ parser.add_argument('--bam', action = 'store', dest = 'bam', required = True, he
 parser.add_argument('--out_counts', action = 'store', dest = 'out_counts', required = True, help = 'Output table of cigar span counts')
 parser.add_argument('--out_hist_prefix', action = 'store', dest = 'out_fig_prefix', required = True, help = 'Prefix for output histograms (one per reference sequence)')
 parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = True, help = 'Additional label to prepend to histogram titles')
+parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files (one file per read span chunk)')
 parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to write to chunk bam files')
 parser.add_argument('--chunk_size_out', action = 'store', dest = 'chunk_size', required = True, help = 'Size of chunks (length interval)')
 args = parser.parse_args()
@@ -30,8 +31,9 @@ bam_file = args.bam
 out_span_counts = args.out_counts
 out_fig_prefix = args.out_fig_prefix
 hist_label = args.hist_label
-max_len_wb = args.max_span
-chunk_size_wb = args.chunk_size
+out_bam_prefix = args.out_bam_prefix
+max_len_wb = int(args.max_span)
+chunk_size_wb = int(args.chunk_size)
 
 # Determine the number of mapped reads in the bam file
 n_mapped = int(pysam.view("-c", "-F", "4", bam_file))
@@ -69,8 +71,6 @@ print("\nIterating through bam file and getting cigar spans...")
 bam_iter = bam_reader.fetch()
 i = 0
 for rec in bam_iter:
-    if i == 1000:
-        break
     ref = rec.reference_name
     span = cigar_span(rec.cigartuples)
     # Append the record to the appropriate bam file
