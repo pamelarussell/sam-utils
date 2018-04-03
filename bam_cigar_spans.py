@@ -6,7 +6,9 @@ import pysam
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import pybedtools
 from sam_utils import cigar_span
+
 
 # Parse the command line
 parser = argparse.ArgumentParser(description = """
@@ -88,6 +90,14 @@ for bam_writer in bam_writers.values():
 # Index the chunk bam files
 for chunk in len_chunks:
     pysam.index(chunk_to_bam(chunk))
+    
+# Write bedgraph coverage files for each chunk bam file for easier display in IGV
+def chunk_to_bedgraph(chunk):
+    return "%s%s_%s.bedgraph" % (out_bam_prefix, chunk[0], chunk[1])
+for chunk in len_chunks:
+    bedtool = pybedtools.BedTool(chunk_to_bam(chunk))
+    cov = bedtool.genome_coverage(ibam = True, bg = True, split = True)  
+    cov.saveas(chunk_to_bedgraph(chunk))
     
 # Write the span counts to a table
 if out_span_counts is not None:
