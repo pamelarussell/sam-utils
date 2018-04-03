@@ -96,7 +96,7 @@ def chunk_to_bedgraph(chunk):
     return "%s%s_%s.bedgraph" % (out_bam_prefix, chunk[0], chunk[1])
 for chunk in len_chunks:
     bedtool = pybedtools.BedTool(chunk_to_bam(chunk))
-    cov = bedtool.genome_coverage(ibam = True, bg = True, split = True)  
+    cov = bedtool.genome_coverage(bg = True)  
     cov.saveas(chunk_to_bedgraph(chunk))
     
 # Write the span counts to a table
