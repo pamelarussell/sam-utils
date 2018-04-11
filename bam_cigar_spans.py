@@ -22,9 +22,9 @@ covered by each record. It creates three sets of outputs:
 3. Bam files consisting only of reads whose span is in a particular length interval
 """)
 parser.add_argument('--bam', action = 'store', dest = 'bam', required = True, help = 'Bam file')
-parser.add_argument('--out_counts', action = 'store', dest = 'out_counts', required = True, help = 'Output table of cigar span counts')
-parser.add_argument('--out_hist_prefix', action = 'store', dest = 'out_fig_prefix', required = True, help = 'Prefix for output histograms (one per reference sequence)')
-parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = True, help = 'Additional label to prepend to histogram titles')
+parser.add_argument('--out_counts', action = 'store', dest = 'out_counts', required = False, help = 'Output table of cigar span counts')
+parser.add_argument('--out_fig_prefix', action = 'store', dest = 'out_fig_prefix', required = False, help = 'Prefix for output histograms (one per reference sequence)')
+parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = False, help = 'Additional label to prepend to histogram titles')
 parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files (one file per read span chunk)')
 parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to write to chunk bam files')
 parser.add_argument('--chunk_size_out', action = 'store', dest = 'chunk_size', required = True, help = 'Size of chunks (length interval)')
