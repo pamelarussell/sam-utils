@@ -26,7 +26,7 @@ parser.add_argument('--out_counts', action = 'store', dest = 'out_counts', requi
 parser.add_argument('--out_fig_prefix', action = 'store', dest = 'out_fig_prefix', required = False, help = 'Prefix for output histograms (one per reference sequence)')
 parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = False, help = 'Additional label to prepend to histogram titles')
 parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files (one file per read span chunk)')
-parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to write to chunk bam files')
+parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to count / write to chunk bam files')
 parser.add_argument('--chunk_size_out', action = 'store', dest = 'chunk_size', required = True, help = 'Size of chunks (length interval)')
 args = parser.parse_args()
 bam_file = args.bam
@@ -34,8 +34,8 @@ out_span_counts = args.out_counts
 out_fig_prefix = args.out_fig_prefix
 hist_label = args.hist_label
 out_bam_prefix = args.out_bam_prefix
-max_len_wb = int(args.max_span)
-chunk_size_wb = int(args.chunk_size)
+max_span = int(args.max_span)
+chunk_size = int(args.chunk_size)
 
 # Determine the number of mapped reads in the bam file
 n_mapped = int(pysam.view("-c", "-F", "4", bam_file))
@@ -45,13 +45,13 @@ print("\nThere are %s mapped reads and %s unmapped reads." % (n_mapped, n_unmapp
 # Construct cigar length chunks for separate bam files
 len_chunks = []
 begin = 0
-end = chunk_size_wb
-while end <= max_len_wb:
+end = chunk_size
+while end <= max_span:
     len_chunks.append((begin, end))
     begin = end
-    end = begin + chunk_size_wb
-if end < max_len_wb:
-    len_chunks.append((end, max_len_wb))
+    end = begin + chunk_size
+if end < max_span:
+    len_chunks.append((end, max_span))
 # Map of cigar length to length chunk
 len_to_chunk = {l: t for t in len_chunks for l in range(t[0], t[1])}
 
@@ -65,8 +65,12 @@ def chunk_to_bam(chunk):
 bam_writers = {chunk: pysam.AlignmentFile(chunk_to_bam(chunk), "wb", header = header) for chunk in len_chunks}
 
 # Keep track of cigar spans
-cigar_spans = pd.DataFrame(columns = ["ref", "span"], index = range(n_mapped))
-
+cigar_span_counts = {}
+def add_cigar_span(ref, span):
+    if ref not in cigar_span_counts:
+        cigar_span_counts[ref] = {s: 0 for s in range(max_span)}
+    cigar_span_counts[ref][span] = 1 + cigar_span_counts[ref][span]
+    
 # Iterate through bam file and save cigar spans
 # Write bam files of records with cigar span in each interval
 print("\nIterating through bam file and getting cigar spans...")
@@ -77,7 +81,7 @@ for rec in bam_iter:
     span = cigar_span(rec.cigartuples)
     # Append the record to the appropriate bam file
     bam_writers[len_to_chunk[span]].write(rec)
-    cigar_spans.iloc[i] = [ref, span]
+    add_cigar_span(ref, span)
     i = i + 1
     if i % 10000 == 0:
         print("Finished %s records" % i)
@@ -102,28 +106,29 @@ for chunk in len_chunks:
 # Write the span counts to a table
 if out_span_counts is not None:
     print("\nWriting span counts to file:\n%s" % out_span_counts)
-    cigar_spans.\
-        groupby(["ref", "span"]).\
-        aggregate(len).\
-        reset_index().\
-        rename(columns = {0: "num_records"}).\
-        to_csv(out_span_counts, sep = "\t", index = False)
+    with open(out_span_counts, 'w') as w:
+        w.write("ref\tspan\tnum_records")
+        for ref, d in cigar_span_counts.items():
+            for span, count in d.items():
+                w.write("%s\t%s\t%s\n" % (ref, span, count))
         
 # Save histograms of cigar spans for each reference sequence
 if out_fig_prefix is not None:
-    print("")
-    for ref in cigar_spans.dropna().ref.unique():
-        out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))
-        fig_data = cigar_spans.loc[cigar_spans["ref"] == ref].as_matrix(columns = ["span"])
-        print("Writing histogram of cigar spans for %s reads to file:\n%s" % (fig_data.shape[0], out_fig))
-        n, bins, patches = plt.hist(fig_data, bins = 500, histtype = "stepfilled", cumulative = False, log = True)
-        plt_title = ref
-        if hist_label is not None:
-            plt_title = "%s -> %s" % (hist_label, plt_title)
-        plt.title(plt_title)
-        plt.xlabel("Cigar span")
-        plt.ylabel("Number of reads")
-        plt.savefig(out_fig)
+    raise RuntimeError("Histogram not implemented")
+# cigar_spans was a data frame with columns ref, span and a row for each mapped read
+#     print("")
+#     for ref in cigar_spans.dropna().ref.unique():
+#         out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))
+#         fig_data = cigar_spans.loc[cigar_spans["ref"] == ref].as_matrix(columns = ["span"])
+#         print("Writing histogram of cigar spans for %s reads to file:\n%s" % (fig_data.shape[0], out_fig))
+#         n, bins, patches = plt.hist(fig_data, bins = 500, histtype = "stepfilled", cumulative = False, log = True)
+#         plt_title = ref
+#         if hist_label is not None:
+#             plt_title = "%s -> %s" % (hist_label, plt_title)
+#         plt.title(plt_title)
+#         plt.xlabel("Cigar span")
+#         plt.ylabel("Number of reads")
+#         plt.savefig(out_fig)
     
     
 print("\nAll done.\n")
