@@ -79,6 +79,8 @@ i = 0
 for rec in bam_iter:
     ref = rec.reference_name
     span = cigar_span(rec.cigartuples)
+    if span > max_span:
+        continue
     # Append the record to the appropriate bam file
     bam_writers[len_to_chunk[span]].write(rec)
     add_cigar_span(ref, span)
@@ -107,10 +109,11 @@ for chunk in len_chunks:
 if out_span_counts is not None:
     print("\nWriting span counts to file:\n%s" % out_span_counts)
     with open(out_span_counts, 'w') as w:
-        w.write("ref\tspan\tnum_records")
+        w.write("ref\tspan\tnum_records\n")
         for ref, d in cigar_span_counts.items():
             for span, count in d.items():
-                w.write("%s\t%s\t%s\n" % (ref, span, count))
+                if count > 0:
+                    w.write("%s\t%s\t%s\n" % (ref, span, count))
         
 # Save histograms of cigar spans for each reference sequence
 if out_fig_prefix is not None:
