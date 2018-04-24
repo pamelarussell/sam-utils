@@ -1,12 +1,13 @@
 
 import argparse
+import collections
 import re
 
-import pysam
+import pybedtools
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import pybedtools
+import pysam
 from sam_utils import cigar_span
 
 
@@ -65,10 +66,13 @@ def chunk_to_bam(chunk):
 bam_writers = {chunk: pysam.AlignmentFile(chunk_to_bam(chunk), "wb", header = header) for chunk in len_chunks}
 
 # Keep track of cigar spans
+# cigar_span_counts is a dict of dicts. Outer keys are reference names, values are dicts, inner dict maps span to count
 cigar_span_counts = {}
 def add_cigar_span(ref, span):
     if ref not in cigar_span_counts:
-        cigar_span_counts[ref] = {s: 0 for s in range(max_span)}
+        cigar_span_counts[ref] = collections.OrderedDict() 
+        for s in range(max_span):
+            cigar_span_counts[s] = 0
     cigar_span_counts[ref][span] = 1 + cigar_span_counts[ref][span]
     
 # Iterate through bam file and save cigar spans
@@ -117,21 +121,18 @@ if out_span_counts is not None:
         
 # Save histograms of cigar spans for each reference sequence
 if out_fig_prefix is not None:
-    raise RuntimeError("Histogram not implemented")
-# cigar_spans was a data frame with columns ref, span and a row for each mapped read
-#     print("")
-#     for ref in cigar_spans.dropna().ref.unique():
-#         out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))
-#         fig_data = cigar_spans.loc[cigar_spans["ref"] == ref].as_matrix(columns = ["span"])
-#         print("Writing histogram of cigar spans for %s reads to file:\n%s" % (fig_data.shape[0], out_fig))
-#         n, bins, patches = plt.hist(fig_data, bins = 500, histtype = "stepfilled", cumulative = False, log = True)
-#         plt_title = ref
-#         if hist_label is not None:
-#             plt_title = "%s -> %s" % (hist_label, plt_title)
-#         plt.title(plt_title)
-#         plt.xlabel("Cigar span")
-#         plt.ylabel("Number of reads")
-#         plt.savefig(out_fig)
+    print("")
+    for ref in cigar_span_counts.keys():
+        out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))       
+        print("Writing histogram of cigar spans to file:\n%s" % out_fig)
+        plt.bar(range(max_span), cigar_span_counts[ref].values())
+        plt_title = ref
+        if hist_label is not None:
+            plt_title = "%s -> %s" % (hist_label, plt_title)
+        plt.title(plt_title)
+        plt.xlabel("Cigar span")
+        plt.ylabel("Number of reads")
+        plt.savefig(out_fig)
     
     
 print("\nAll done.\n")
