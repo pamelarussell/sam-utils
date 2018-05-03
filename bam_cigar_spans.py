@@ -80,10 +80,11 @@ bam_writers = {chunk: pysam.AlignmentFile(chunk_to_bam(chunk), "wb", header = he
 def span_to_key(span):
     return span - span % span_res
 cigar_span_counts = {}
+span_keys = range(0, max_span, span_res)
 def add_cigar_span(ref, span):
     if ref not in cigar_span_counts:
         cigar_span_counts[ref] = collections.OrderedDict() 
-        for s in range(max_span):
+        for s in span_keys:
             cigar_span_counts[ref][s] = 0
     key = span_to_key(span)
     cigar_span_counts[ref][key] = 1 + cigar_span_counts[ref][key]
@@ -102,7 +103,7 @@ for rec in bam_iter:
     bam_writers[len_to_chunk[span]].write(rec)
     add_cigar_span(ref, span)
     i = i + 1
-    if i % 1000000 == 0:
+    if i % 100000 == 0:
         logger.write("Finished %s records\n" % "{:,}".format(i))
 logger.write("Finished iterating through bam file.\n")
 
@@ -114,24 +115,24 @@ for bam_writer in bam_writers.values():
     bam_writer.close()
 
 # Index the chunk bam files
-logger.write("\nIndexing the chunk bam files\n")
+logger.write("\nIndexing the chunk bam files...\n")
 for chunk in len_chunks:
-    logger.write("Chunk $s/%s\n" % (chunk, len_chunks))
+    logger.write("Chunk %s\n" % list(chunk))
     pysam.index(chunk_to_bam(chunk))
     
 # Write bedgraph coverage files for each chunk bam file for easier display in IGV
-logger.write("\nWriting bedgraph coverage files\n")
+logger.write("\nWriting bedgraph coverage files...\n")
 def chunk_to_bedgraph(chunk):
     return "%s%s_%s.bedgraph" % (out_bam_prefix, chunk[0], chunk[1])
 for chunk in len_chunks:
-    logger.write("Chunk $s/%s\n" % (chunk, len_chunks))
+    logger.write("Chunk %s\n" % list(chunk))
     bedtool = pybedtools.BedTool(chunk_to_bam(chunk))
     cov = bedtool.genome_coverage(bg = True, split = True)
     cov.saveas(chunk_to_bedgraph(chunk))
     
 # Write the span counts to a table
 if out_span_counts is not None:
-    logger.write("\nWriting span counts to file:\n%s\n" % out_span_counts)
+    logger.write("\nWriting span counts to file: %s...\n" % out_span_counts)
     with open(out_span_counts, 'w') as w:
         w.write("ref\tspan\tnum_records\n")
         for ref, d in cigar_span_counts.items():
@@ -153,7 +154,7 @@ if out_fig_prefix is not None:
         out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))       
         logger.write("Writing histogram of cigar spans to file:\n%s\n" % out_fig)
         plt_data = [to_log(x) for x in cigar_span_counts[ref].values()]
-        plt.bar(range(max_span), plt_data)
+        plt.bar(span_keys, plt_data)
         plt_title = ref
         if hist_label is not None:
             plt_title = "%s -> %s" % (hist_label, plt_title)
