@@ -3,12 +3,10 @@ import argparse
 import collections
 import math
 import re
-import sys
 
 import pybedtools
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import pysam
 from sam_utils import cigar_span
 
@@ -31,6 +29,7 @@ parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label',
 parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files (one file per read span chunk)')
 parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to count / write to chunk bam files')
 parser.add_argument('--chunk_size_out', action = 'store', dest = 'chunk_size', required = True, help = 'Size of chunks (length interval)')
+parser.add_argument('--span_res', action = 'store', dest = 'span_res', required = False, default = 100, help = 'Resolution for keeping track of cigar spans')
 parser.add_argument('--log', action = 'store', dest = 'log', required = True, help = 'Log file')
 args = parser.parse_args()
 bam_file = args.bam
@@ -40,6 +39,7 @@ hist_label = args.hist_label
 out_bam_prefix = args.out_bam_prefix
 max_span = int(args.max_span)
 chunk_size = int(args.chunk_size)
+span_res = args.span_res 
 log = args.log
 logger = open(log, "w", buffering = 1)
 
@@ -74,14 +74,19 @@ def chunk_to_bam(chunk):
 bam_writers = {chunk: pysam.AlignmentFile(chunk_to_bam(chunk), "wb", header = header) for chunk in len_chunks}
 
 # Keep track of cigar spans
-# cigar_span_counts is a dict of dicts. Outer keys are reference names, values are dicts, inner dict maps span to count
+# cigar_span_counts is a dict of dicts. Outer keys are reference names, values are dicts, inner dict maps span interval to count
+# Keys of inner dict are the beginning of span interval, e.g., if the span intervals are size 10, a fragment with length 72 would
+# count under the key 70
+def span_to_key(span):
+    return span - span % span_res
 cigar_span_counts = {}
 def add_cigar_span(ref, span):
     if ref not in cigar_span_counts:
         cigar_span_counts[ref] = collections.OrderedDict() 
         for s in range(max_span):
             cigar_span_counts[ref][s] = 0
-    cigar_span_counts[ref][span] = 1 + cigar_span_counts[ref][span]
+    key = span_to_key(span)
+    cigar_span_counts[ref][key] = 1 + cigar_span_counts[ref][key]
     
 # Iterate through bam file and save cigar spans
 # Write bam files of records with cigar span in each interval
@@ -104,7 +109,7 @@ logger.write("Finished iterating through bam file.\n")
 # Close the bam files
 logger.write("\nClosing bam reader...\n")
 bam_reader.close()
-loger.write("\nClosing the bam writers...\n")
+logger.write("\nClosing the bam writers...\n")
 for bam_writer in bam_writers.values():
     bam_writer.close()
 
