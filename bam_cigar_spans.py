@@ -25,6 +25,7 @@ covered by each record. It creates three sets of outputs:
 parser.add_argument('--bam', action = 'store', dest = 'bam', required = True, help = 'Bam file')
 parser.add_argument('--out_counts', action = 'store', dest = 'out_counts', required = False, help = 'Output table of cigar span counts')
 parser.add_argument('--out_fig_prefix', action = 'store', dest = 'out_fig_prefix', required = False, help = 'Prefix for output histograms (one per reference sequence)')
+parser.add_argument('--hist_refs', action = 'store', dest = 'hist_refs', required = False, help = 'Comma-separated list of reference names to plot histograms for. If omitted, plot all references.')
 parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = False, help = 'Additional label to prepend to histogram titles')
 parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files (one file per read span chunk)')
 parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to count / write to chunk bam files')
@@ -36,6 +37,8 @@ bam_file = args.bam
 out_span_counts = args.out_counts
 out_fig_prefix = args.out_fig_prefix
 hist_label = args.hist_label
+hist_refs_list = args.hist_refs
+hist_refs = hist_refs_list.split(',')
 out_bam_prefix = args.out_bam_prefix
 max_span = int(args.max_span)
 chunk_size = int(args.chunk_size)
@@ -150,18 +153,24 @@ def to_log(x):
         raise ValueError("Invalid arg to log: %s" %x)
 if out_fig_prefix is not None:
     logger.write("\n")
-    for ref in cigar_span_counts.keys():
-        out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))       
-        logger.write("Writing histogram of cigar spans to file:\n%s\n" % out_fig)
-        plt_data = [to_log(x) for x in cigar_span_counts[ref].values()]
-        plt.bar(span_keys, plt_data)
-        plt_title = ref
-        if hist_label is not None:
-            plt_title = "%s -> %s" % (hist_label, plt_title)
-        plt.title(plt_title)
-        plt.xlabel("Cigar span")
-        plt.ylabel("Number of reads (log10)")
-        plt.savefig(out_fig)
+    refs_to_plot = hist_refs
+    if refs_to_plot is None:
+        refs_to_plot = cigar_span_counts.keys()
+    if len(refs_to_plot) > 100:
+        logger.write("Not writing histograms because there are too many (%s) reference sequences to plot" % len(refs_to_plot))
+    else:
+        for ref in refs_to_plot:
+            out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))       
+            logger.write("Writing histogram of cigar spans to file:\n%s\n" % out_fig)
+            plt_data = [to_log(x) for x in cigar_span_counts[ref].values()]
+            plt.bar(span_keys, plt_data)
+            plt_title = ref
+            if hist_label is not None:
+                plt_title = "%s -> %s" % (hist_label, plt_title)
+            plt.title(plt_title)
+            plt.xlabel("Cigar span")
+            plt.ylabel("Number of reads (log10)")
+            plt.savefig(out_fig)
     
     
 logger.write("\nAll done.\n\n")
