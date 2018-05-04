@@ -106,7 +106,7 @@ for rec in bam_iter:
     bam_writers[len_to_chunk[span]].write(rec)
     add_cigar_span(ref, span)
     i = i + 1
-    if i % 100000 == 0:
+    if i % 1000000 == 0:
         logger.write("Finished %s records\n" % "{:,}".format(i))
 logger.write("Finished iterating through bam file.\n")
 
@@ -164,6 +164,7 @@ if out_fig_prefix is not None:
                 out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))       
                 logger.write("Writing histogram of cigar spans to file: %s\n" % out_fig)
                 plt_data = [to_log(x) for x in cigar_span_counts[ref].values()]
+                plt.figure()
                 plt.bar(span_keys, plt_data)
                 plt_title = ref
                 if hist_label is not None:
