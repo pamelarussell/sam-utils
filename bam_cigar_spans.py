@@ -190,7 +190,8 @@ if out_fig_prefix is not None:
                 plt.bar(span_keys, plt_data)
                 plt_title = ref
                 if ref_to_name is not None:
-                    plt_title = "%s (%s)" % (ref, ref_to_name[ref])
+                    if ref in ref_to_name:
+                        plt_title = "%s (%s)" % (ref, ref_to_name[ref])
                 if hist_label is not None:
                     plt_title = "%s -> %s" % (hist_label, plt_title)
                 plt.title(plt_title)
