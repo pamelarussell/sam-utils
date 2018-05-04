@@ -27,24 +27,46 @@ parser.add_argument('--out_counts', action = 'store', dest = 'out_counts', requi
 parser.add_argument('--out_fig_prefix', action = 'store', dest = 'out_fig_prefix', required = False, help = 'Prefix for output histograms (one per reference sequence)')
 parser.add_argument('--hist_refs', action = 'store', dest = 'hist_refs', required = False, help = 'Comma-separated list of reference names to plot histograms for. If omitted, plot all references.')
 parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = False, help = 'Additional label to prepend to histogram titles')
+parser.add_argument('--ref_to_name', action = 'store', dest = 'ref_to_name', required = False, help = 'Mapping file with ref in first column, name in second column')
 parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files (one file per read span chunk)')
 parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to count / write to chunk bam files')
 parser.add_argument('--chunk_size_out', action = 'store', dest = 'chunk_size', required = True, help = 'Size of chunks (length interval)')
 parser.add_argument('--span_res', action = 'store', dest = 'span_res', required = False, default = 100, help = 'Resolution for keeping track of cigar spans')
 parser.add_argument('--log', action = 'store', dest = 'log', required = True, help = 'Log file')
 args = parser.parse_args()
+
+# Simple args
 bam_file = args.bam
 out_span_counts = args.out_counts
 out_fig_prefix = args.out_fig_prefix
 hist_label = args.hist_label
+out_bam_prefix = args.out_bam_prefix
+span_res = args.span_res 
+
+# Process ref list arg
 hist_refs_list = args.hist_refs
 hist_refs = hist_refs_list.split(',')
-out_bam_prefix = args.out_bam_prefix
+
+# Process max span and chunk size args
 max_span = int(args.max_span)
 chunk_size = int(args.chunk_size)
-span_res = args.span_res 
+
+# Process log arg
 log = args.log
 logger = open(log, "w", buffering = 1)
+
+# Process reference to name mapping
+ref_to_name_file = args.ref_to_name
+ref_to_name = None
+if ref_to_name_file is not None:
+    ref_to_name = {}
+    with open(ref_to_name_file) as f:
+        for line in f:
+            tokens = line.split()
+            ref = tokens[0]
+            name = tokens[1]
+            ref_to_name[ref] = name
+    
 
 # Determine the number of mapped reads in the bam file
 logger.write("\nCounting mapped and unmapped reads in %s...\n" % bam_file)
@@ -167,6 +189,8 @@ if out_fig_prefix is not None:
                 plt.figure()
                 plt.bar(span_keys, plt_data)
                 plt_title = ref
+                if ref_to_name is not None:
+                    plt_title = "%s (%s)" % (ref, ref_to_name[ref])
                 if hist_label is not None:
                     plt_title = "%s -> %s" % (hist_label, plt_title)
                 plt.title(plt_title)
