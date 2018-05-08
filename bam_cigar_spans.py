@@ -119,17 +119,24 @@ def add_cigar_span(ref, span):
 logger.write("\nIterating through bam file and getting cigar spans...\n")
 bam_iter = bam_reader.fetch()
 i = 0
+skipped = 0
+too_big = 0
 for rec in bam_iter:
+    i = i + 1
+    if i % 1000000 == 0:
+        logger.write("Finished %s records. Skipped %s that were too long and %s that were secondary or supplementary.\n" % ("{:,}".format(i), "{:,}".format(too_big), "{:,}".format(skipped)))
+    # Skip secondary and supplementary (chimeric) alignments
+    if rec.is_secondary or rec.is_supplementary:
+        skipped = skipped + 1
+        continue
     ref = rec.reference_name
     span = cigar_span(rec.cigartuples)
     if span > max_span:
+        too_big = too_big + 1
         continue
     # Append the record to the appropriate bam file
     bam_writers[len_to_chunk[span]].write(rec)
     add_cigar_span(ref, span)
-    i = i + 1
-    if i % 1000000 == 0:
-        logger.write("Finished %s records\n" % "{:,}".format(i))
 logger.write("Finished iterating through bam file.\n")
 
 # Close the bam files
