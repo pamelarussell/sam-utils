@@ -189,24 +189,21 @@ if out_fig_prefix is not None:
         logger.write("Not writing histograms because there are too many (%s) reference sequences to plot" % len(refs_to_plot))
     else:
         for ref in refs_to_plot:
-            if ref in cigar_span_counts:
-                out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))       
-                logger.write("Writing histogram of cigar spans to file: %s\n" % out_fig)
-                plt_data = [to_log(x) for x in cigar_span_counts[ref].values()]
-                plt.figure()
-                plt.bar(span_keys, plt_data)
-                plt_title = ref
-                if ref_to_name is not None:
-                    if ref in ref_to_name:
-                        plt_title = "%s (%s)" % (ref, ref_to_name[ref])
-                if hist_label is not None:
-                    plt_title = "%s -> %s" % (hist_label, plt_title)
-                plt.title(plt_title)
-                plt.xlabel("Cigar span")
-                plt.ylabel("Number of reads (log10)")
-                plt.savefig(out_fig)
-            else:
-                logger.write("Skipping reference %s: not found.\n" % ref)    
+            out_fig = "%s%s.pdf" % (out_fig_prefix, re.sub("[| .]", r'_', ref))       
+            logger.write("Writing histogram of cigar spans to file: %s\n" % out_fig)
+            plt_data = [to_log(x) for x in cigar_span_counts[ref].values()] if ref in cigar_span_counts else []
+            plt.figure()
+            plt.bar(span_keys, plt_data)
+            plt_title = ref
+            if ref_to_name is not None:
+                if ref in ref_to_name:
+                    plt_title = "%s (%s)" % (ref, ref_to_name[ref])
+            if hist_label is not None:
+                plt_title = "%s -> %s" % (hist_label, plt_title)
+            plt.title(plt_title)
+            plt.xlabel("Cigar span")
+            plt.ylabel("Number of reads (log10)")
+            plt.savefig(out_fig)
 
     
 logger.write("\nAll done.\n\n")
