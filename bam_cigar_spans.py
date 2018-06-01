@@ -28,7 +28,8 @@ parser.add_argument('--out_fig_prefix', action = 'store', dest = 'out_fig_prefix
 parser.add_argument('--hist_refs', action = 'store', dest = 'hist_refs', required = False, help = 'Comma-separated list of reference names to plot histograms for. If omitted, plot all references.')
 parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = False, help = 'Additional label to prepend to histogram titles')
 parser.add_argument('--ref_to_name', action = 'store', dest = 'ref_to_name', required = False, help = 'Mapping file with ref in first column, name in second column')
-parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files (one file per read span chunk)')
+parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files without separator at end (one file per read span chunk)')
+parser.add_argument('--out_bedgraph_prefix', action = 'store', dest = 'out_begraph_prefix', required = True, help = 'Prefix for output bedgraph files without separator at end (one file per read span chunk)')
 parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to count / write to chunk bam files')
 parser.add_argument('--chunk_size_out', action = 'store', dest = 'chunk_size', required = True, help = 'Size of chunks (length interval)')
 parser.add_argument('--span_res', action = 'store', dest = 'span_res', required = False, default = 100, help = 'Resolution for keeping track of cigar spans')
@@ -41,6 +42,7 @@ out_span_counts = args.out_counts
 out_fig_prefix = args.out_fig_prefix
 hist_label = args.hist_label
 out_bam_prefix = args.out_bam_prefix
+out_bedgraph_prefix = args.out_bedgraph_prefix
 span_res = args.span_res 
 
 # Process ref list arg
@@ -95,7 +97,7 @@ header = bam_reader.header
 # Make a bam file writer for each length range/chunk
 logger.write("\nMaking bam writers...\n")
 def chunk_to_bam(chunk):
-    return "%s%s_%s.bam" % (out_bam_prefix, chunk[0], chunk[1])
+    return "%s_%s_%s.bam" % (out_bam_prefix, chunk[0], chunk[1])
 bam_writers = {chunk: pysam.AlignmentFile(chunk_to_bam(chunk), "wb", header = header) for chunk in len_chunks}
 
 # Keep track of cigar spans
@@ -155,12 +157,12 @@ for chunk in len_chunks:
 # Write bedgraph coverage file for original bam file
 bedtool = pybedtools.BedTool(bam_file)
 cov = bedtool.genome_coverage(bg = True, split = True)
-cov.saveas("%s.bedgraph" % out_bam_prefix)
+cov.saveas("%s.bedgraph" % out_bedgraph_prefix)
     
 # Write bedgraph coverage files for each chunk bam file for easier display in IGV
 logger.write("\nWriting bedgraph coverage files...\n")
 def chunk_to_bedgraph(chunk):
-    return "%s%s_%s.bedgraph" % (out_bam_prefix, chunk[0], chunk[1])
+    return "%s_%s_%s.bedgraph" % (out_bedgraph_prefix, chunk[0], chunk[1])
 for chunk in len_chunks:
     logger.write("Chunk %s\n" % list(chunk))
     bedtool = pybedtools.BedTool(chunk_to_bam(chunk))
