@@ -29,7 +29,7 @@ parser.add_argument('--hist_refs', action = 'store', dest = 'hist_refs', require
 parser.add_argument('--extra_hist_label', action = 'store', dest = 'hist_label', required = False, help = 'Additional label to prepend to histogram titles')
 parser.add_argument('--ref_to_name', action = 'store', dest = 'ref_to_name', required = False, help = 'Mapping file with ref in first column, name in second column')
 parser.add_argument('--out_bam_prefix', action = 'store', dest = 'out_bam_prefix', required = True, help = 'Prefix for output bam files without separator at end (one file per read span chunk)')
-parser.add_argument('--out_bedgraph_prefix', action = 'store', dest = 'out_begraph_prefix', required = True, help = 'Prefix for output bedgraph files without separator at end (one file per read span chunk)')
+parser.add_argument('--out_bedgraph_prefix', action = 'store', dest = 'out_bedgraph_prefix', required = True, help = 'Prefix for output bedgraph files without separator at end (one file per read span chunk)')
 parser.add_argument('--max_read_span_out', action = 'store', dest = 'max_span', required = True, help = 'Max read span to count / write to chunk bam files')
 parser.add_argument('--chunk_size_out', action = 'store', dest = 'chunk_size', required = True, help = 'Size of chunks (length interval)')
 parser.add_argument('--span_res', action = 'store', dest = 'span_res', required = False, default = 100, help = 'Resolution for keeping track of cigar spans')
