@@ -152,6 +152,11 @@ for chunk in len_chunks:
     logger.write("Chunk %s\n" % list(chunk))
     pysam.index(chunk_to_bam(chunk))
     
+# Write bedgraph coverage file for original bam file
+bedtool = pybedtools.BedTool(bam_file)
+cov = bedtool.genome_coverage(bg = True, split = True)
+cov.saveas("%s.bedgraph" % out_bam_prefix)
+    
 # Write bedgraph coverage files for each chunk bam file for easier display in IGV
 logger.write("\nWriting bedgraph coverage files...\n")
 def chunk_to_bedgraph(chunk):
